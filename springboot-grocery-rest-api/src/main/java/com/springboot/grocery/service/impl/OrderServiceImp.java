@@ -54,6 +54,7 @@ public class OrderServiceImp implements OrderService {
 
         order.setStore(store);
 
+
         OrderDto newOrder = mapToDTO(orderRepository.save(order));
         newOrder.setStore_id(store_id);
         return newOrder;
@@ -73,6 +74,24 @@ public class OrderServiceImp implements OrderService {
             income = income + orders.get(i).getTotal_cost();
         }
         return income;
+    }
+
+    @Override
+    public void deleteOrder(long store_id, long order_id) {
+
+        Store store = storeRepository.findById(store_id).orElseThrow(
+                ()->new ResourceNotFoundException("Store","id",store_id)
+        );
+        Order order = orderRepository.findById(order_id).orElseThrow(() ->
+                new ResourceNotFoundException("Order", "id", order_id));
+        if(!order.getStore().getId().equals(store.getId())){
+            throw new GroceryAPIException(HttpStatus.BAD_REQUEST, "Order does not belongs to store");
+        }
+        List<Line>lines =  lineRepository.findByOrderId( order_id);
+        for (int i = 0; i < lines.size(); i++) {
+            lineRepository.deleteById(lines.get(i).getId());
+        }
+        orderRepository.delete(order);
     }
 
     @Override
@@ -118,6 +137,7 @@ public class OrderServiceImp implements OrderService {
     private Order mapToEntity(OrderDto orderDto){
         Order order = new Order();
         order.setId(orderDto.getId());
+        order.setUser_id(orderDto.getUser_id());
         order.setDrone_id(orderDto.getDrone_id());
         order.setOrder_status(orderDto.getOrder_status());
         order.setEmployee_id(orderDto.getEmployee_id());
